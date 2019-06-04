@@ -23,6 +23,9 @@ public class Movement_Infantry : MonoBehaviour
 
     public float gravity = 9.81f;
 
+    Vector3 jumpVector = Vector3.zero;
+    Vector3 aGravityEffect = Vector3.zero;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -32,22 +35,25 @@ public class Movement_Infantry : MonoBehaviour
     {
         Rotate();
         Move();
-        Jump();
         CheckIsGrounded();
-        if (moveY <= 0)
-        {
-            ArtificialGravity();
-        }
     }
 
     void Move()
     {
+        Jump();
+        //ArtificialGravity();
+
         inputX = Input.GetAxis("Horizontal");
         inputZ = Input.GetAxis("Vertical");
 
-        Vector3 pos = rb.transform.forward * inputZ * 100f + rb.transform.right * inputX * 100f;
+        Vector3 pos = rb.transform.forward * inputZ + rb.transform.right * inputX;
 
-        rb.MovePosition(rb.transform.position + pos * Time.deltaTime);
+        if (!isGrounded)
+        {
+            pos = pos / 2;
+        }
+
+        rb.MovePosition(rb.transform.position + pos * 10f * Time.deltaTime + jumpVector * Time.deltaTime + aGravityEffect * Time.deltaTime);
     }
 
     void Rotate()
@@ -68,16 +74,16 @@ public class Movement_Infantry : MonoBehaviour
             readyToJump = false;
         }
 
-        if (moveY > 0) {
+        jumpVector = rb.transform.up.normalized * moveY;
+
+        if (moveY > 0)
+        {
             moveY -= gravity * Time.deltaTime;
-        } else if (moveY <= 0)
+        }
+        else if (moveY <= 0)
         {
             moveY = 0;
         }
-
-        Vector3 jumpVector = -rb.transform.up.normalized * moveY;
-
-        rb.MovePosition(rb.transform.position + jumpVector * Time.deltaTime);
 
         if (!readyToJump)
         {
@@ -104,7 +110,7 @@ public class Movement_Infantry : MonoBehaviour
             hitDistance = 0.15f;
         }
 
-        if (Physics.Raycast(rb.transform.position - rb.transform.up * 0.85f, -rb.transform.up, hitDistance, layerMask))
+        if (Physics.Raycast(rb.transform.position - rb.transform.up.normalized * 0.85f, -rb.transform.up.normalized, hitDistance, layerMask))
         {
             isGrounded = true;
         }
@@ -116,8 +122,12 @@ public class Movement_Infantry : MonoBehaviour
 
     void ArtificialGravity()
     {
-        Vector3 aGravityEffect = -rb.transform.up * gravity;
-
-        rb.MovePosition(rb.transform.position + aGravityEffect * Time.deltaTime);
+        if (moveY <= 0) {
+            aGravityEffect += -rb.transform.up.normalized * gravity;
+        }
+        else
+        {
+            aGravityEffect = Vector3.zero;
+        }
     }
 }
