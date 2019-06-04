@@ -29,6 +29,7 @@ public class Movement_Infantry : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+        rb.useGravity = false;
     }
 
     void FixedUpdate()
@@ -41,7 +42,7 @@ public class Movement_Infantry : MonoBehaviour
     void Move()
     {
         Jump();
-        //ArtificialGravity();
+        ArtificialGravity();
 
         inputX = Input.GetAxis("Horizontal");
         inputZ = Input.GetAxis("Vertical");
@@ -53,14 +54,14 @@ public class Movement_Infantry : MonoBehaviour
             pos = pos / 2;
         }
 
-        rb.MovePosition(rb.transform.position + pos * 10f * Time.deltaTime + jumpVector * Time.deltaTime + aGravityEffect * Time.deltaTime);
+        rb.MovePosition(rb.transform.position + pos * 10f * Time.deltaTime + jumpVector * Time.deltaTime);
     }
 
     void Rotate()
     {
         inputY = Input.GetAxis("Mouse X");
 
-        Vector3 rot = new Vector3(0, inputY * rotSpeed, 0);
+        Vector3 rot = rb.transform.up.normalized * inputY * rotSpeed;
 
         transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles + rot * Time.deltaTime);
         rb.MoveRotation(transform.rotation);
@@ -76,11 +77,9 @@ public class Movement_Infantry : MonoBehaviour
 
         jumpVector = rb.transform.up.normalized * moveY;
 
-        if (moveY > 0)
-        {
-            moveY -= gravity * Time.deltaTime;
-        }
-        else if (moveY <= 0)
+        moveY -= gravity * Time.deltaTime;
+
+        if (moveY <= 0)
         {
             moveY = 0;
         }
@@ -123,11 +122,13 @@ public class Movement_Infantry : MonoBehaviour
     void ArtificialGravity()
     {
         if (moveY <= 0) {
-            aGravityEffect += -rb.transform.up.normalized * gravity;
+            aGravityEffect = -rb.transform.up.normalized * gravity;
         }
         else
         {
             aGravityEffect = Vector3.zero;
         }
+
+        rb.AddForce(aGravityEffect);
     }
 }
