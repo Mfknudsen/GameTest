@@ -4,13 +4,14 @@ using UnityEngine;
 
 public class UI_Infantry : MonoBehaviour
 {
-    // Start is called before the first frame update
+    [HideInInspector]
+    public Health_Infantry HealthInfantry;
+
     void Start()
     {
-        
+        HealthInfantry = GetComponent<Health_Infantry>();
     }
 
-    // Update is called once per frame
     void Update()
     {
         

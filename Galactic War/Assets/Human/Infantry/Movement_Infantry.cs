@@ -4,7 +4,11 @@ using UnityEngine;
 
 public class Movement_Infantry : MonoBehaviour
 {
-    Rigidbody rb;
+    [HideInInspector]
+    public Health_Infantry HI;
+
+    [HideInInspector]
+    public Rigidbody RB;
 
     float inputX, inputY, inputZ;
     public float moveSpeed = 15f;
@@ -28,15 +32,16 @@ public class Movement_Infantry : MonoBehaviour
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        rb.useGravity = false;
+        HI = GetComponent<Health_Infantry>();
+        RB = GetComponent<Rigidbody>();
+        RB.useGravity = false;
     }
 
     void FixedUpdate()
     {
+        CheckIsGrounded();
         Rotate();
         Move();
-        CheckIsGrounded();
     }
 
     void Move()
@@ -47,24 +52,30 @@ public class Movement_Infantry : MonoBehaviour
         inputX = Input.GetAxis("Horizontal");
         inputZ = Input.GetAxis("Vertical");
 
-        Vector3 pos = rb.transform.forward * inputZ + rb.transform.right * inputX;
+        Vector3 newPositionVector = RB.transform.forward * inputZ + RB.transform.right * inputX;
 
         if (!isGrounded)
         {
-            pos = pos / 2;
+            newPositionVector = newPositionVector / 2;
         }
 
-        rb.MovePosition(rb.transform.position + pos * 10f * Time.deltaTime + jumpVector * Time.deltaTime);
+        if (!HI.isDead)
+        {
+            RB.MovePosition(RB.transform.position + newPositionVector * 10f * Time.deltaTime + jumpVector * Time.deltaTime);
+        }
+        else
+        {
+            moveY = 0f;
+        }
     }
 
     void Rotate()
     {
         inputY = Input.GetAxis("Mouse X");
 
-        Vector3 rot = rb.transform.up.normalized * inputY * rotSpeed;
+        Vector3 newRotationVector = RB.transform.up * inputY * rotSpeed;
 
-        transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles + rot * Time.deltaTime);
-        rb.MoveRotation(transform.rotation);
+        RB.MoveRotation(Quaternion.Euler(RB.transform.rotation.eulerAngles + newRotationVector * Time.deltaTime));
     }
 
     void Jump()
@@ -75,7 +86,7 @@ public class Movement_Infantry : MonoBehaviour
             readyToJump = false;
         }
 
-        jumpVector = rb.transform.up.normalized * moveY;
+        jumpVector = RB.transform.up * moveY;
 
         moveY -= gravity * Time.deltaTime;
 
@@ -109,7 +120,7 @@ public class Movement_Infantry : MonoBehaviour
             hitDistance = 0.15f;
         }
 
-        if (Physics.Raycast(rb.transform.position - rb.transform.up.normalized * 0.85f, -rb.transform.up.normalized, hitDistance, layerMask))
+        if (Physics.Raycast(RB.transform.position - RB.transform.up * 0.90f, -RB.transform.up, hitDistance, layerMask))
         {
             isGrounded = true;
         }
@@ -122,13 +133,13 @@ public class Movement_Infantry : MonoBehaviour
     void ArtificialGravity()
     {
         if (moveY <= 0) {
-            aGravityEffect = -rb.transform.up.normalized * gravity;
+            aGravityEffect = -RB.transform.up * gravity;
         }
         else
         {
             aGravityEffect = Vector3.zero;
         }
 
-        rb.AddForce(aGravityEffect);
+        RB.AddForce(aGravityEffect);
     }
 }
