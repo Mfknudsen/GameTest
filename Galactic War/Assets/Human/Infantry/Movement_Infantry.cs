@@ -37,9 +37,13 @@ public class Movement_Infantry : MonoBehaviour
         RB.useGravity = false;
     }
 
-    void FixedUpdate()
+    void Update()
     {
         CheckIsGrounded();
+    }
+
+    void FixedUpdate()
+    {
         Rotate();
         Move();
     }

@@ -103,6 +103,7 @@ GameObject:
   - component: {fileID: 8977716466526607199}
   - component: {fileID: 8977716466526607268}
   - component: {fileID: 8977716466526607195}
+  - component: {fileID: 655040641}
   m_Layer: 8
   m_Name: Capsule
   m_TagString: Untagged
@@ -212,6 +213,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a28f55f87fc0644fb28c0b79b03b1b4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  HI: {fileID: 0}
+  RB: {fileID: 0}
   moveSpeed: 35
   rotSpeed: 150
   isGrounded: 1
@@ -281,6 +284,7 @@ MonoBehaviour:
   stats_Armor: 2
   stats_Shield: 1
   rechargeTimerDelay: 60
+  isDead: 0
 --- !u!114 &8977716466526607268
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -307,3 +311,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentHeal: 0
+--- !u!114 &655040641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8977716466526607184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe0c62124d80af6448b9b475a267f5dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  loadout: {fileID: 0}
