@@ -5,6 +5,11 @@ TagManager:
   serializedVersion: 2
   tags:
   - Crawlable
+  - AlertMessage
+  - Weapon
+  - Bullet
+  - ShootPoint
+  - LobbyCam
   layers:
   - Default
   - TransparentFX
@@ -15,8 +20,8 @@ TagManager:
   - 
   - 
   - Player
-  - 
-  - 
+  - Weapon
+  - Bullet
   - 
   - 
   - 
