@@ -49,13 +49,13 @@ namespace RB_Controller
         [Header("Dash")]
         public bool RechargeAll = false;
         public int dashAmount = 2;
-        public float dashDistance = 2f;
-        public float dashResistent = 5f;
+        public float dashSpeed = 2f;
+        public float dashTime = 2f;
         public float dashRechargeTime = 2f;
         private int curDashAmount = 0;
         private float currentDashSpeed = 0;
         private float currentDashRecharge = 0;
-        private float currentDashResist = 0;
+        private float currentDashTime = 0;
         private Vector3 dashVector = Vector3.zero;
 
         [Header("Bar Jump")]
@@ -67,6 +67,7 @@ namespace RB_Controller
         [Header("Local Orientation")]
         public bool changeLocalOrientation = false;
         public float offset = 0, radiusDist = 1, heightDist = 1;
+        private Vector3 lastOrientation = Vector3.zero;
 
         void Start()
         {
@@ -78,6 +79,7 @@ namespace RB_Controller
         private void Update()
         {
             GetInput();
+            LocalOrientationChange();
         }
 
         void FixedUpdate()
@@ -195,7 +197,7 @@ namespace RB_Controller
         {
             if (Input.GetKeyDown(KeyCode.LeftControl) && dashAmount > curDashAmount && currentDashSpeed == 0)
             {
-                currentDashSpeed = Mathf.Sqrt(dashDistance * 2f * dashResistent);
+                currentDashSpeed = dashSpeed;
 
                 if (InputX != 0 || InputZ != 0)
                     dashVector = (transform.forward * InputZ + transform.right * InputX).normalized;
@@ -235,17 +237,10 @@ namespace RB_Controller
 
             if (State == State.Dashing || State == State.AirDash)
             {
-                if (currentDashSpeed > currentDashResist)
-                {
-                    //RB.velocity = dashVector * currentDashSpeed - dashVector * currentDashResist;
-                    RB.velocity = dashVector * currentDashSpeed - dashVector * (currentDashSpeed / currentDashResist * 3 * Mathf.Pow(currentDashResist, 3));
-
-                    currentDashResist += Time.fixedDeltaTime;
-                }
-                else if (currentDashSpeed <= currentDashResist || currentDashResist <= (currentDashSpeed / currentDashResist * 3 * Mathf.Pow(currentDashResist, 3)))
+                if (dashTime <= currentDashTime)
                 {
                     currentDashSpeed = 0;
-                    currentDashResist = 0;
+                    currentDashTime = 0;
                     RB.velocity = Vector3.zero;
 
                     if (State == State.AirDash)
@@ -253,6 +248,8 @@ namespace RB_Controller
                     else
                         State = State.Grounded;
                 }
+                else
+                    currentDashTime += Time.fixedDeltaTime;
             }
         }
 
@@ -311,7 +308,7 @@ namespace RB_Controller
 
                     pos += (transform.forward * y + transform.right * x).normalized * radiusDist;
 
-                    if (Physics.Raycast(pos, -transform.up * heightDist, out hit, groundMask))
+                    if (Physics.Raycast(pos, -transform.up, out hit, heightDist, groundMask))
                     {
                         newUpVec += hit.normal;
                         hitCount++;
@@ -319,9 +316,19 @@ namespace RB_Controller
                     Debug.DrawRay(pos, -transform.up * heightDist);
                 }
 
-                newUpVec = newUpVec / hitCount;
+                if (hitCount != 0)
+                    newUpVec = (newUpVec / hitCount).normalized;
+                else
+                    newUpVec = Vector3.up;
 
-                RB.transform.up = Vector3.Lerp(RB.transform.up, newUpVec, 0.9f);
+                Debug.Log(newUpVec);
+                if (newUpVec != transform.up)
+                {
+                    Quaternion toRot = Quaternion.LookRotation(transform.forward, newUpVec) * transform.rotation;
+                    transform.rotation = toRot;
+
+                    lastOrientation = newUpVec;
+                }
             }
         }
     }

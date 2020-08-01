@@ -734,7 +734,7 @@ GameObject:
   - component: {fileID: 2075187817}
   - component: {fileID: 2075187816}
   - component: {fileID: 2075187815}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -825,8 +825,8 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1154502158, guid: 6ed1b317e9024ac4e9212293b2eb5100, type: 3}
-      propertyPath: dashResistent
-      value: 1
+      propertyPath: heightDist
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 3264592184655028718, guid: 6ed1b317e9024ac4e9212293b2eb5100, type: 3}
       propertyPath: m_LocalPosition.x

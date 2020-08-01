@@ -189,7 +189,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f01655c5d7abe84590b35bb4863a527, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  State: 1
+  State: 0
   DebugSystem: 0
   RB: {fileID: 1154502159}
   Cam: {fileID: 3264592185803686541}
@@ -207,16 +207,16 @@ MonoBehaviour:
     m_Bits: 256
   RechargeAll: 1
   dashAmount: 2
-  dashDistance: 3
-  dashResistent: 0.5
+  dashSpeed: 10
+  dashTime: 0.5
   dashRechargeTime: 2
   checkDistance: 1
   upForce: 1
   forwardForce: 2
   changeLocalOrientation: 1
-  offset: 0
-  radiusDist: 1
-  heightDist: 1
+  offset: 0.9
+  radiusDist: 0.5
+  heightDist: 0.1
 --- !u!1 &3264592185803686541
 GameObject:
   m_ObjectHideFlags: 0
