@@ -67,7 +67,7 @@ namespace RB_Controller
         [Header("Local Orientation")]
         public bool changeLocalOrientation = false;
         public float offset = 0, radiusDist = 1, heightDist = 1;
-        private Vector3 lastOrientation = Vector3.zero;
+        private Vector3 targetRotation = Vector3.zero;
 
         void Start()
         {
@@ -79,7 +79,6 @@ namespace RB_Controller
         private void Update()
         {
             GetInput();
-            LocalOrientationChange();
         }
 
         void FixedUpdate()
@@ -87,6 +86,7 @@ namespace RB_Controller
             switch (State)
             {
                 case State.Grounded:
+                    LocalOrientationChange();
                     Move();
                     Rot();
                     Gravity();
@@ -94,6 +94,7 @@ namespace RB_Controller
                     break;
 
                 case State.Airborne:
+                    LocalOrientationChange();
                     Move();
                     Rot();
                     Gravity();
@@ -140,7 +141,7 @@ namespace RB_Controller
 
             Cam.transform.localRotation = Quaternion.Euler(xRot, 0f, 0f);
 
-            transform.Rotate(transform.up * RotX * 250);
+            transform.RotateAround(transform.position, transform.up, RotX * 250);
         }
 
         private void Gravity()
@@ -260,75 +261,86 @@ namespace RB_Controller
                 if (!localGravity)
                     localGravity = true;
 
-                int hitCount = 0;
-                Vector3 newUpVec = Vector3.zero;
-                RaycastHit hit;
-
-                for (int i = 0; i < 9; i++)
+                if (State == State.Grounded)
                 {
-                    Vector3 pos = transform.position - transform.up * offset;
-                    float x = 0, y = 0;
+                    int hitCount = 0;
+                    Vector3 newUpVec = Vector3.zero;
+                    RaycastHit hit;
 
-                    if (i == 0)
+                    /*for (int i = 0; i < 9; i++)
                     {
-                        x = 1;
-                        y = 1;
-                    }
-                    else if (i == 1)
+                        Vector3 pos = transform.position - transform.up * offset;
+                        float x = 0, y = 0;
+
+                        if (i == 0)
+                        {
+                            x = 1;
+                            y = 1;
+                        }
+                        else if (i == 1)
+                        {
+                            y = 1;
+                        }
+                        else if (i == 2)
+                        {
+                            x = -1;
+                            y = 1;
+                        }
+                        else if (i == 3)
+                        {
+                            x = 1;
+                        }
+                        else if (i == 4)
+                        {
+                            x = -1;
+                        }
+                        else if (i == 5)
+                        {
+                            x = 1;
+                            y = -1;
+                        }
+                        else if (i == 6)
+                        {
+                            y = -1;
+                        }
+                        else if (i == 7)
+                        {
+                            x = -1;
+                            y = -1;
+                        }
+
+                        pos += (transform.forward * y + transform.right * x).normalized * radiusDist;
+
+                        if (Physics.Raycast(pos, -transform.up, out hit, heightDist, groundMask))
+                        {
+                            newUpVec += hit.normal;
+                            hitCount++;
+                        }
+                        Debug.DrawRay(pos, -transform.up * heightDist);
+                    }*/
+
+                    if (Physics.Raycast(transform.position - transform.up * offset, -transform.up, out hit, heightDist, groundMask))
                     {
-                        y = 1;
-                    }
-                    else if (i == 2)
-                    {
-                        x = -1;
-                        y = 1;
-                    }
-                    else if (i == 3)
-                    {
-                        x = 1;
-                    }
-                    else if (i == 4)
-                    {
-                        x = -1;
-                    }
-                    else if (i == 5)
-                    {
-                        x = 1;
-                        y = -1;
-                    }
-                    else if (i == 6)
-                    {
-                        y = -1;
-                    }
-                    else if (i == 7)
-                    {
-                        x = -1;
-                        y = -1;
+                        newUpVec = hit.normal;
+                        hitCount = 1;
                     }
 
-                    pos += (transform.forward * y + transform.right * x).normalized * radiusDist;
+                    if (hitCount != 0)
+                        newUpVec = (newUpVec / hitCount);
+                    else
+                        newUpVec = Vector3.up;
 
-                    if (Physics.Raycast(pos, -transform.up, out hit, heightDist, groundMask))
-                    {
-                        newUpVec += hit.normal;
-                        hitCount++;
-                    }
-                    Debug.DrawRay(pos, -transform.up * heightDist);
+                    targetRotation = newUpVec;
                 }
 
-                if (hitCount != 0)
-                    newUpVec = (newUpVec / hitCount).normalized;
-                else
-                    newUpVec = Vector3.up;
-
-                Debug.Log(newUpVec);
-                if (newUpVec != transform.up)
+                if (targetRotation != transform.up)
                 {
-                    Quaternion toRot = Quaternion.LookRotation(transform.forward, newUpVec) * transform.rotation;
+                    Quaternion toRot = Quaternion.LookRotation(transform.up, Vector3.Lerp(transform.up, targetRotation, 0.9f)) * transform.rotation;
+
                     transform.rotation = toRot;
-
-                    lastOrientation = newUpVec;
                 }
+                else
+                    Debug.Log("Correct");
             }
         }
     }
