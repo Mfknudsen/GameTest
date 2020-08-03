@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using UnityEngine;
 using UnityEngine.Experimental.AI;
 
@@ -10,8 +11,10 @@ namespace RB_Controller
     {
         public State State;
 
-        [Header("Debug")]
+        [Header("System")]
         public bool DebugSystem = false;
+        public int timer = 1;
+        private float curTimer = 0;
 
         [Header("Object Reference")]
         public Rigidbody RB = null;
@@ -57,17 +60,18 @@ namespace RB_Controller
         private float currentDashRecharge = 0;
         private float currentDashTime = 0;
         private Vector3 dashVector = Vector3.zero;
-
+        /*
         [Header("Bar Jump")]
         public float checkDistance = 1f;
         public float upForce = 1f;
         public float forwardForce = 2f;
         private JumpBar currentBar = null;
-
+        */
         [Header("Local Orientation")]
         public bool changeLocalOrientation = false;
+        public float turnSpeed = 0.5f;
         public float offset = 0, radiusDist = 1, heightDist = 1;
-        private Vector3 targetRotation = Vector3.zero;
+        private Vector3 targetRotation = Vector3.up, curRotation = Vector3.up;
 
         void Start()
         {
@@ -78,7 +82,16 @@ namespace RB_Controller
 
         private void Update()
         {
-            GetInput();
+            if (Mathf.Floor(curTimer) % timer == 0)
+            {
+                GetInput();
+                LocalOrientationChange();
+
+                if (curTimer <= 100)
+                    curTimer = 0;
+            }
+
+            curTimer += Time.deltaTime;
         }
 
         void FixedUpdate()
@@ -86,7 +99,6 @@ namespace RB_Controller
             switch (State)
             {
                 case State.Grounded:
-                    LocalOrientationChange();
                     Move();
                     Rot();
                     Gravity();
@@ -94,7 +106,6 @@ namespace RB_Controller
                     break;
 
                 case State.Airborne:
-                    LocalOrientationChange();
                     Move();
                     Rot();
                     Gravity();
@@ -114,8 +125,6 @@ namespace RB_Controller
                 case State.BarJump:
                     break;
             }
-
-            RB.MovePosition(transform.position + TargetPos);
         }
 
         private void GetInput()
@@ -130,6 +139,8 @@ namespace RB_Controller
         private void Move()
         {
             TargetPos = (RB.transform.forward * InputZ + RB.transform.right * InputX).normalized * MoveSpeed * Time.deltaTime;
+
+            RB.MovePosition(transform.position + TargetPos);
         }
 
         private void Rot()
@@ -261,86 +272,49 @@ namespace RB_Controller
                 if (!localGravity)
                     localGravity = true;
 
-                if (State == State.Grounded)
+                RaycastHit hit;
+                Vector3 newUpVec = Vector3.zero;
+                int count = 0;
+
+                if (InputZ != 0 || InputX != 0)
                 {
-                    int hitCount = 0;
-                    Vector3 newUpVec = Vector3.zero;
-                    RaycastHit hit;
-
-                    /*for (int i = 0; i < 9; i++)
-                    {
-                        Vector3 pos = transform.position - transform.up * offset;
-                        float x = 0, y = 0;
-
-                        if (i == 0)
-                        {
-                            x = 1;
-                            y = 1;
-                        }
-                        else if (i == 1)
-                        {
-                            y = 1;
-                        }
-                        else if (i == 2)
-                        {
-                            x = -1;
-                            y = 1;
-                        }
-                        else if (i == 3)
-                        {
-                            x = 1;
-                        }
-                        else if (i == 4)
-                        {
-                            x = -1;
-                        }
-                        else if (i == 5)
-                        {
-                            x = 1;
-                            y = -1;
-                        }
-                        else if (i == 6)
-                        {
-                            y = -1;
-                        }
-                        else if (i == 7)
-                        {
-                            x = -1;
-                            y = -1;
-                        }
-
-                        pos += (transform.forward * y + transform.right * x).normalized * radiusDist;
-
-                        if (Physics.Raycast(pos, -transform.up, out hit, heightDist, groundMask))
-                        {
-                            newUpVec += hit.normal;
-                            hitCount++;
-                        }
-                        Debug.DrawRay(pos, -transform.up * heightDist);
-                    }*/
-
                     if (Physics.Raycast(transform.position - transform.up * offset, -transform.up, out hit, heightDist, groundMask))
                     {
-                        newUpVec = hit.normal;
-                        hitCount = 1;
+                        newUpVec += hit.normal;
                     }
-
-                    if (hitCount != 0)
-                        newUpVec = (newUpVec / hitCount);
-                    else
-                        newUpVec = Vector3.up;
-
-                    targetRotation = newUpVec;
+                    if (Physics.Raycast(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up, out hit, heightDist, groundMask))
+                    {
+                        newUpVec += hit.normal;
+                    }
+                    if (DebugSystem)
+                    {
+                        Debug.DrawRay(transform.position - transform.up * offset, -transform.up * heightDist);
+                        Debug.DrawRay(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up * heightDist);
+                    }
                 }
 
-                if (targetRotation != transform.up)
-                {
-                    Quaternion toRot = Quaternion.LookRotation(transform.up, Vector3.Lerp(transform.up, targetRotation, 0.9f)) * transform.rotation;
 
-                    transform.rotation = toRot;
-                }
+
+                if (State == State.Airborne && !isGrounded)
+                    newUpVec = Vector3.up;
+
+                targetRotation = newUpVec.normalized;
+
+                if (Vector3.Angle(curRotation, targetRotation) >= 2.5f)
+                    curRotation = Vector3.Lerp(curRotation, targetRotation, turnSpeed * Time.deltaTime);
                 else
-                    Debug.Log("Correct");
+                    curRotation = targetRotation;
+
+                transform.rotation = Quaternion.FromToRotation(transform.up, curRotation) * transform.rotation;
+
+                if (DebugSystem)
+                {
+                    if (transform.up != targetRotation)
+                        Debug.Log("Current Up transform doesnt match!");
+
+                    Debug.DrawRay(transform.position, transform.forward * 0.5f);
+                    Debug.DrawRay(transform.position, transform.up);
+                }
             }
         }
     }
