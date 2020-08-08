@@ -13,8 +13,6 @@ namespace RB_Controller
 
         [Header("System")]
         public bool DebugSystem = false;
-        public int timer = 1;
-        private float curTimer = 0;
 
         [Header("Object Reference")]
         public Rigidbody RB = null;
@@ -28,7 +26,7 @@ namespace RB_Controller
         [Header("Rotation")]
         public float RotSpeed = 1.0f;
         private float RotX = 0, RotY = 0;
-        private float xRot = 0;
+        private float camX = 0;
 
         [Header("Jump")]
         public float jumpHeight = 3f;
@@ -41,7 +39,7 @@ namespace RB_Controller
         [Header("Gravity")]
         public bool localGravity = false;
         public float gravity = -9.81f;
-        private Vector3 velocity = Vector3.zero;
+        private Vector3 velocity = Vector3.zero, gravDir = Vector3.up;
         private bool isGrounded = false;
 
         [Header("Ground Check")]
@@ -60,18 +58,12 @@ namespace RB_Controller
         private float currentDashRecharge = 0;
         private float currentDashTime = 0;
         private Vector3 dashVector = Vector3.zero;
-        /*
-        [Header("Bar Jump")]
-        public float checkDistance = 1f;
-        public float upForce = 1f;
-        public float forwardForce = 2f;
-        private JumpBar currentBar = null;
-        */
+
         [Header("Local Orientation")]
         public bool changeLocalOrientation = false;
         public float turnSpeed = 0.5f;
         public float offset = 0, radiusDist = 1, heightDist = 1;
-        private Vector3 targetRotation = Vector3.up, curRotation = Vector3.up;
+        private Vector3 targetRotation = Vector3.up, curRotation = Vector3.up, newUpVec = Vector3.zero;
 
         void Start()
         {
@@ -82,16 +74,8 @@ namespace RB_Controller
 
         private void Update()
         {
-            if (Mathf.Floor(curTimer) % timer == 0)
-            {
-                GetInput();
-                LocalOrientationChange();
-
-                if (curTimer <= 100)
-                    curTimer = 0;
-            }
-
-            curTimer += Time.deltaTime;
+            GetInput();
+            LocalOrientationChange();
         }
 
         void FixedUpdate()
@@ -145,14 +129,14 @@ namespace RB_Controller
 
         private void Rot()
         {
-            RotX *= Time.deltaTime;
+            RotX *= Time.fixedDeltaTime;
 
-            xRot -= RotY;
-            xRot = Mathf.Clamp(xRot, -90f, 90f);
+            camX -= RotY * Time.fixedDeltaTime * RotSpeed * 10;
+            camX = Mathf.Clamp(camX, -90f, 90f);
 
-            Cam.transform.localRotation = Quaternion.Euler(xRot, 0f, 0f);
+            Cam.transform.localRotation = Quaternion.Euler(camX, 0f, 0f);
 
-            transform.RotateAround(transform.position, transform.up, RotX * 250);
+            transform.RotateAround(transform.position, transform.up, RotX * RotSpeed * 10);
         }
 
         private void Gravity()
@@ -164,14 +148,14 @@ namespace RB_Controller
             RB.AddForce(velocity);
 
             if (localGravity)
-                velocity += transform.up * gravity * Time.deltaTime;
+                velocity += gravDir * gravity * Time.deltaTime;
             else
                 velocity.y += gravity * Time.deltaTime;
 
             if (isGrounded)
             {
                 if (localGravity)
-                    velocity = transform.up * -2.0f;
+                    velocity = gravDir * -2.0f;
                 else
                     velocity.y = -2.0f;
 
@@ -269,33 +253,26 @@ namespace RB_Controller
         {
             if (changeLocalOrientation)
             {
-                if (!localGravity)
-                    localGravity = true;
-
-                RaycastHit hit;
-                Vector3 newUpVec = Vector3.zero;
-                int count = 0;
-
-                if (InputZ != 0 || InputX != 0)
+                if (State == State.Grounded && isGrounded)
                 {
+                    RaycastHit hit;
+
                     if (Physics.Raycast(transform.position - transform.up * offset, -transform.up, out hit, heightDist, groundMask))
                     {
-                        newUpVec += hit.normal;
+                        newUpVec = hit.normal;
                     }
-                    if (Physics.Raycast(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up, out hit, heightDist, groundMask))
+                    if (InputZ != 0 || InputX != 0)
                     {
-                        newUpVec += hit.normal;
-                    }
-                    if (DebugSystem)
-                    {
-                        Debug.DrawRay(transform.position - transform.up * offset, -transform.up * heightDist);
-                        Debug.DrawRay(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up * heightDist);
+                        if (Physics.Raycast(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up, out hit, heightDist, groundMask))
+                        {
+                            newUpVec += hit.normal;
+                        }
+
+                        if (DebugSystem)
+                            Debug.DrawRay(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up * heightDist);
                     }
                 }
-
-
-
-                if (State == State.Airborne && !isGrounded)
+                else if (State == State.Airborne && !isGrounded)
                     newUpVec = Vector3.up;
 
                 targetRotation = newUpVec.normalized;
@@ -307,14 +284,7 @@ namespace RB_Controller
 
                 transform.rotation = Quaternion.FromToRotation(transform.up, curRotation) * transform.rotation;
 
-                if (DebugSystem)
-                {
-                    if (transform.up != targetRotation)
-                        Debug.Log("Current Up transform doesnt match!");
-
-                    Debug.DrawRay(transform.position, transform.forward * 0.5f);
-                    Debug.DrawRay(transform.position, transform.up);
-                }
+                gravDir = targetRotation;
             }
         }
     }
