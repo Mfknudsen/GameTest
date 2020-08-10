@@ -1,8 +1,11 @@
-﻿using System.Collections;
+﻿#region Unity Libraries
+using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using UnityEngine;
-using UnityEngine.Experimental.AI;
+#endregion
+#region DevClasses
+using CalcWallWalking;
+#endregion
 
 namespace RB_Controller
 {
@@ -60,13 +63,19 @@ namespace RB_Controller
         private Vector3 dashVector = Vector3.zero;
 
         [Header("Local Orientation")]
-        public bool changeLocalOrientation = false;
-        public float turnSpeed = 0.5f;
-        public float offset = 0, radiusDist = 1, heightDist = 1;
-        private Vector3 targetRotation = Vector3.up, curRotation = Vector3.up, newUpVec = Vector3.zero;
+        public float sphereRadius;
+        public float maxDistance;
+        public LayerMask layerMask;
+        private WallWalkingCalc WW_Calc = null;
+        private Vector3 goalNormal = Vector3.up;
+        private Vector3 origin;
+        private Vector3 direction;
 
         void Start()
         {
+            WW_Calc = ScriptableObject.CreateInstance("WallWalkingCalc") as WallWalkingCalc;
+            WW_Calc.feelerSize = sphereRadius;
+
             RB = GetComponent<Rigidbody>();
             if (RB == null)
                 RB = gameObject.AddComponent<Rigidbody>();
@@ -251,41 +260,48 @@ namespace RB_Controller
 
         private void LocalOrientationChange()
         {
-            if (changeLocalOrientation)
-            {
-                if (State == State.Grounded && isGrounded)
-                {
-                    RaycastHit hit;
+            origin = transform.position;
+            direction = (transform.forward * InputZ + transform.right * InputX).normalized;
 
-                    if (Physics.Raycast(transform.position - transform.up * offset, -transform.up, out hit, heightDist, groundMask))
-                    {
-                        newUpVec = hit.normal;
-                    }
-                    if (InputZ != 0 || InputX != 0)
-                    {
-                        if (Physics.Raycast(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up, out hit, heightDist, groundMask))
-                        {
-                            newUpVec += hit.normal;
-                        }
+            goalNormal = WW_Calc.GetAverageWallWalkingNormal(origin, maxDistance, sphereRadius, layerMask);
 
-                        if (DebugSystem)
-                            Debug.DrawRay(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up * heightDist);
-                    }
-                }
-                else if (State == State.Airborne && !isGrounded)
-                    newUpVec = Vector3.up;
-
-                targetRotation = newUpVec.normalized;
-
-                if (Vector3.Angle(curRotation, targetRotation) >= 2.5f)
-                    curRotation = Vector3.Lerp(curRotation, targetRotation, turnSpeed * Time.deltaTime);
-                else
-                    curRotation = targetRotation;
-
-                transform.rotation = Quaternion.FromToRotation(transform.up, curRotation) * transform.rotation;
-
-                gravDir = targetRotation;
-            }
+            Vector3 newNormal = WW_Calc.SmoothWallNormal(transform, goalNormal);
+            transform.rotation = Quaternion.FromToRotation(transform.up, newNormal) * transform.rotation;
         }
     }
 }
+/*if (changeLocalOrientation)
+{
+    if (State == State.Grounded && isGrounded)
+    {
+        RaycastHit hit;
+
+        if (Physics.Raycast(transform.position - transform.up * offset, -transform.up, out hit, heightDist, groundMask))
+        {
+            newUpVec = hit.normal;
+        }
+        if (InputZ != 0 || InputX != 0)
+        {
+            if (Physics.Raycast(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up, out hit, heightDist, groundMask))
+            {
+                newUpVec += hit.normal;
+            }
+
+            if (DebugSystem)
+                Debug.DrawRay(transform.position - transform.up * offset + (transform.forward * InputZ + transform.right * InputX).normalized * radiusDist, -transform.up * heightDist);
+        }
+    }
+    else if (State == State.Airborne && !isGrounded)
+        newUpVec = Vector3.up;
+
+    targetRotation = newUpVec.normalized;
+
+    if (Vector3.Angle(curRotation, targetRotation) >= 2.5f)
+        curRotation = Vector3.Lerp(curRotation, targetRotation, turnSpeed * Time.deltaTime);
+    else
+        curRotation = targetRotation;
+
+    transform.rotation = Quaternion.FromToRotation(transform.up, curRotation) * transform.rotation;
+
+    gravDir = targetRotation;
+}*/
